@@ -21,6 +21,17 @@ else()
     message(FATAL_ERROR "LLVM not found. Ensure you installed LLVM via Homebrew and set LLVM_DIR correctly.")
 endif()
 
-add_executable(myl Sources/Main.cpp
-                   Sources/Repl.cpp)
+# --- Main project ------------------------------------------------------------------
+
+set(MYL_SOURCES Sources/Main.cpp
+                Sources/Repl.cpp
+                Sources/Lexer.cpp)
+
+add_executable(myl ${MYL_SOURCES})
 target_link_libraries(myl tracing)
+target_link_libraries(myl unicode)
+
+add_executable(myl_test ${MYL_SOURCES})
+target_compile_definitions(myl_test PRIVATE MYL_TEST)
+target_link_libraries(myl_test tracing)
+target_link_libraries(myl_test unicode)

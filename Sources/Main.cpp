@@ -3,7 +3,28 @@
 
 #include "Repl.h"
 
-static struct TraceContext TC;
+struct TraceContext TC;
+
+#ifdef MYL_TEST
+
+#include <Test/Test.h>
+
+extern void testLexEatIdent( Tm42_TestContext * ctx );
+extern void testLexEatNumber( Tm42_TestContext * ctx );
+extern void testLexLex( Tm42_TestContext * ctx );
+
+int
+main() {
+    init_tracing( &TC, stdout, "Main" );
+    t0( &TC, "Tracing initialized." );
+
+    Tm42_TestContext ctx;
+    testLexEatIdent( &ctx );
+    testLexEatNumber( &ctx );
+    testLexLex( &ctx );
+}
+
+#else // MYL_TEST
 
 int
 main() {
@@ -22,3 +43,5 @@ main() {
   deinit_tracing(&TC);
   return 0;
 }
+
+#endif // MYL_TEST
