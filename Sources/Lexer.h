@@ -16,6 +16,8 @@ enum class TokenKind {
     FLOAT64,
 };
 
+const char * tokenKindStr( TokenKind tk );
+
 typedef std::variant< I32, F64 > TokenData;
 
 struct SourceCodeLocation {

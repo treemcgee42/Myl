@@ -13,15 +13,20 @@ extern void testLexEatIdent( Tm42_TestContext * ctx );
 extern void testLexEatNumber( Tm42_TestContext * ctx );
 extern void testLexLex( Tm42_TestContext * ctx );
 
+extern void testParseCons( Tm42_TestContext * ctx );
+
 int
 main() {
     init_tracing( &TC, stdout, "Main" );
     t0( &TC, "Tracing initialized." );
 
     Tm42_TestContext ctx;
+
     testLexEatIdent( &ctx );
     testLexEatNumber( &ctx );
     testLexLex( &ctx );
+
+    testParseCons( &ctx );
 }
 
 #else // MYL_TEST

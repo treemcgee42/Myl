@@ -23,9 +23,10 @@ endif()
 
 # --- Main project ------------------------------------------------------------------
 
-set(MYL_SOURCES Sources/Main.cpp
-                Sources/Repl.cpp
-                Sources/Lexer.cpp)
+set(MYL_SOURCES Sources/Lexer.cpp
+                Sources/Main.cpp
+                Sources/Parser.cpp
+                Sources/Repl.cpp)
 
 add_executable(myl ${MYL_SOURCES})
 target_link_libraries(myl tracing)

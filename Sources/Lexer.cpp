@@ -12,6 +12,24 @@
 
 extern struct TraceContext TC;
 
+const char *
+tokenKindStr( TokenKind tk ) {
+    switch ( tk ) {
+    case TokenKind::LPAREN:
+        return "TokenKind::LPAREN";
+    case TokenKind::RPAREN:
+        return "TokenKind::RPAREN";
+    case TokenKind::IDENT:
+        return "TokenKind::IDENT";
+    case TokenKind::INT32:
+        return "TokenKind::INT32";
+    case TokenKind::FLOAT64:
+        return "TokenKind::FLOAT64";
+    default:
+        return "TokenKind::???";
+    }
+}
+
 std::string_view
 Lexer::getStringView( SourceCodeLocation loc ) {
     return std::string_view( this->m_input ).substr(
