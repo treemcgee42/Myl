@@ -36,3 +36,28 @@ add_executable(myl_test ${MYL_SOURCES})
 target_compile_definitions(myl_test PRIVATE MYL_TEST)
 target_link_libraries(myl_test tracing)
 target_link_libraries(myl_test unicode)
+
+# --- Vesper ------------------------------------------------------------------------
+
+set(VESPER_SOURCES Sources/Vesper/Bytecode.cpp
+                   Sources/Vesper/Main.cpp
+                   Sources/Vesper/Ui.cpp
+                   Sources/Vesper/Vm.cpp)
+add_library(vesper SHARED ${VESPER_SOURCES})
+set_target_properties(vesper PROPERTIES
+    OUTPUT_NAME "vesper"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Lib"
+)
+file(GLOB VESPER_HEADERS
+    "${PROJECT_SOURCE_DIR}/Sources/Vesper/*.h"
+)
+set(VESPER_DEST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/Include/Vesper")
+file(MAKE_DIRECTORY ${VESPER_DEST_INCLUDE_DIR})
+file(COPY ${VESPER_HEADERS} DESTINATION ${VESPER_DEST_INCLUDE_DIR})
+
+set(VESPER_TEST_SOURCES Sources/Vesper/Test/BytecodeTest.cpp
+                        Sources/Vesper/Test/Main.cpp)
+add_executable(vesper_test ${VESPER_TEST_SOURCES})
+target_link_libraries(vesper_test PRIVATE vesper)
+target_include_directories(vesper_test PRIVATE "${CMAKE_BINARY_DIR}/Include")
+
