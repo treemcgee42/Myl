@@ -1,0 +1,36 @@
+
+* Pillars
+
+- Memory (allocations, layout, etc.) is an important abstraction. Unless you're
+  programming on a perfect machine, you have limited memory, cache locality is
+  a thing, and it matters when things are freed because that has real performance
+  cost.
+
+* Functions
+
+** Parameter list
+
+*** Parameters
+
+Each parameter has
+- a type
+- an /internal name/: this is a label by which it may be referred to within the
+  function
+- an /external name/: a label used in the API.
+- an optional default value.
+
+As a matter of convenience, if the external name is not specified then it is taken
+to be the same as the internal name.
+
+If the external name is ~_~ then the parameter is unnamed: no label is specified in
+the API.
+
+#+begin_src lisp
+  ;; A
+  (: NAME TYPE)
+  ;; B
+  (:= NAME TYPE VALUE)
+  (:= NAME VALUE)
+  ;; C
+  (EXTERNAL-NAME A-OR-B)
+#+end_src
