@@ -17,6 +17,8 @@ operator<<( std::ostream & os, Opcode op ) {
         return os << "STORE";
     case Opcode::ZERO_ACC:
         return os << "ZERO_ACC";
+    case Opcode::ARG:
+        return os << "ARG";
     case Opcode::CALL:
         return os << "CALL";
     default:

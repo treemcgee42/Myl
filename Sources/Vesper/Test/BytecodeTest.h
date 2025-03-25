@@ -9,3 +9,4 @@ void testBytecodeLoad( Tm42_TestContext * ctx );
 void testBytecodeStore( Tm42_TestContext * ctx );
 void testBytecodeZeroAcc( Tm42_TestContext * ctx );
 void testBytecodeCall( Tm42_TestContext * ctx );
+void testBytecodeArg( Tm42_TestContext * ctx );

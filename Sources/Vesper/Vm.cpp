@@ -92,6 +92,10 @@ Vm::executeInstruction( Bytecode instruction ) {
     case Opcode::ZERO_ACC:
         this->m_accumulator = 0;
         break;
+    case Opcode::ARG:
+        this->m_stack.push( this->m_stack.get( instruction.arg ) );
+        this->m_accumulator.i32 += 1;
+        break;
     case Opcode::CALL:
         this->callStack.push(
             { this->m_nextInstructionIdx,
@@ -163,6 +167,15 @@ Vm::printFunctionTable( std::ostream & os ) const {
         std::cout << std::setw( 4 ) << std::setfill( ' ' ) << i << " | "
                   << this->functionTable[ i ] << "\n";
     }
+}
+
+void
+Vm::printCurrentState( std::ostream & os ) const {
+    os << "\n";
+    this->printNextInstruction();
+    this->printRegisters();
+    this->printFunctionTable();
+    os << "\n";
 }
 
 size_t

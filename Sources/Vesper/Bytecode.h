@@ -15,6 +15,7 @@ enum class Opcode : U8 {
     STORE,
     ZERO_ACC,
     // --- begin control flow -------------------------------------------------------
+    ARG,
     CALL
     // --- end control flow ---------------------------------------------------------
 };

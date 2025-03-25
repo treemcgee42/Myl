@@ -77,3 +77,29 @@ testBytecodeCall( Tm42_TestContext * ctx ) {
 
     TM42_END_TEST();
 }
+
+void
+testBytecodeArg( Tm42_TestContext * ctx ) {
+    TM42_BEGIN_TEST( "ARG opcode" );
+
+    Vm vm;
+    vm.pushDataOntoStack( Register( 1 ) );
+    vm.pushDataOntoStack( Register( 2 ) );
+
+    vm.pushInstruction( { Opcode::ZERO_ACC, 0 } );
+    vm.pushInstruction( { Opcode::ARG, 0 } );
+    vm.pushInstruction( { Opcode::ARG, 1 } );
+    vm.pushCallInstruction( "foo" );
+
+    vm.beginLabel( "foo" );
+    vm.pushInstruction( { Opcode::LOAD, 0 } );
+    vm.pushInstruction( { Opcode::ADD, 1 } );
+    vm.endLabel();
+
+    for ( int i = 0; i < 6; ++i ) {
+        vm.executeNextInstruction();
+    }
+    TM42_TEST_ASSERT( ctx, vm.accumulatorValue().i32 == 3 );
+
+    TM42_END_TEST();
+}

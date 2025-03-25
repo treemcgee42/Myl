@@ -68,6 +68,7 @@ public:
     void printNextInstruction( std::ostream & os = std::cout ) const;
     void printRegisters( std::ostream & os = std::cout ) const;
     void printFunctionTable( std::ostream & os = std::cout ) const;
+    void printCurrentState( std::ostream & os = std::cout ) const;
 
     void pushInstruction( Bytecode instruction );
     void pushCallInstruction( const std::string & label );

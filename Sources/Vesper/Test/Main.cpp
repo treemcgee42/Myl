@@ -12,6 +12,7 @@ main() {
     testBytecodeStore( &ctx );
     testBytecodeZeroAcc( &ctx );
     testBytecodeCall( &ctx );
+    testBytecodeArg( &ctx );
 
     return 0;
 }
