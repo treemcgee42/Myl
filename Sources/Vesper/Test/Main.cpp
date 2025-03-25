@@ -8,6 +8,10 @@ main() {
     Tm42_TestContext ctx;
 
     testBytecodeAdd( &ctx );
+    testBytecodeLoad( &ctx );
+    testBytecodeStore( &ctx );
+    testBytecodeZeroAcc( &ctx );
+    testBytecodeCall( &ctx );
 
     return 0;
 }

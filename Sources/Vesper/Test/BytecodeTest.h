@@ -5,3 +5,7 @@
 #include <Test/Test.h>
 
 void testBytecodeAdd( Tm42_TestContext * ctx );
+void testBytecodeLoad( Tm42_TestContext * ctx );
+void testBytecodeStore( Tm42_TestContext * ctx );
+void testBytecodeZeroAcc( Tm42_TestContext * ctx );
+void testBytecodeCall( Tm42_TestContext * ctx );
