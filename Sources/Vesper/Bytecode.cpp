@@ -19,8 +19,12 @@ operator<<( std::ostream & os, Opcode op ) {
         return os << "ZERO_ACC";
     case Opcode::ARG:
         return os << "ARG";
+    case Opcode::ARG_IMM:
+        return os << "ARG_IMM";
     case Opcode::CALL:
         return os << "CALL";
+    case Opcode::RET:
+        return os << "RET";
     default:
         assert( false );
     };

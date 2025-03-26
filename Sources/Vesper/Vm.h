@@ -41,6 +41,8 @@ public:
     Register get( size_t offsetFromBase );
     void set( size_t offsetFromBase, Register reg );
     void push( Register value );
+    // Reserve at least `amount` more slots on the stack.
+    void reserve( size_t amount );
     // Increment the top of the stack by `amount`, allocating memory as necessary.
     void expand( size_t amount );
 
@@ -63,6 +65,7 @@ public:
     void setAccumulator( Register value );
 
     void executeInstruction( Bytecode instruction );
+    void executeInstructions( const std::vector< Bytecode > & instructions );
     void executeNextInstruction();
 
     void printNextInstruction( std::ostream & os = std::cout ) const;
@@ -86,8 +89,10 @@ public:
     // building calls inside here. Don't do anything silly like define nested
     // labels. I mean, it might work?
 
+    // `frameSize` does not include the space taken by the return value or
+    // incoming arguments.
     // Returns the index into the function table at which the label is created.
-    size_t beginLabel( const std::string & label );
+    size_t beginLabel( const std::string & label, size_t frameSize );
     void endLabel();
 
     // --- end labels ---------------------------------------------------------------
@@ -99,6 +104,7 @@ public:
     size_t m_nextInstructionIdx;
 
     std::vector< size_t > functionTable;
+    std::vector< size_t > functionFrameSizeTable;
     std::unordered_map< std::string, size_t > labels;
     CallStack callStack;
 

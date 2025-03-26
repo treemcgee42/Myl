@@ -41,6 +41,11 @@ DataStack::push( Register value ) {
 }
 
 void
+DataStack::reserve( size_t amount ) {
+    this->m_stack.resize( this->m_baseIdx + amount, 0 );
+}
+
+void
 DataStack::expand( size_t amount ) {
     this->m_stack.resize( this->m_baseIdx + amount, 0 );
     this->m_topIdx += amount;
@@ -96,17 +101,40 @@ Vm::executeInstruction( Bytecode instruction ) {
         this->m_stack.push( this->m_stack.get( instruction.arg ) );
         this->m_accumulator.i32 += 1;
         break;
+    case Opcode::ARG_IMM:
+        this->m_stack.push( instruction.arg );
+        this->m_accumulator.i32 += 1;
+        break;
     case Opcode::CALL:
         this->callStack.push(
             { this->m_nextInstructionIdx,
               this->m_stack.m_baseIdx,
-              this->m_stack.m_topIdx } );
+              this->m_stack.m_topIdx - this->m_accumulator.i32 } );
         this->m_stack.m_baseIdx = this->m_stack.m_topIdx - this->m_accumulator.i32;
         this->m_nextInstructionIdx = this->functionTable[ instruction.arg ];
+        this->m_stack.reserve( this->functionFrameSizeTable[ instruction.arg ] );
         break;
+    case Opcode::RET: {
+        const auto frame = this->callStack.pop();
+        this->m_nextInstructionIdx = frame.ip;
+        this->m_stack.m_baseIdx = frame.sbp;
+        this->m_stack.m_topIdx = frame.sp + instruction.arg;
+        break;
+    }
     default:
         assert( false );
     };
+}
+
+void
+Vm::executeInstructions( const std::vector< Bytecode > & instructions ) {
+    this->m_nextInstructionIdx = this->m_code.size();
+    for ( const auto & instruction : instructions ) {
+        this->m_code.push_back( instruction );
+    }
+    while ( this->m_nextInstructionIdx < this->m_code.size() ) {
+        this->executeNextInstruction();
+    }
 }
 
 void
@@ -124,6 +152,7 @@ Vm::executeNextInstruction() {
 
 void
 Vm::printNextInstruction( std::ostream & os ) const {
+    os << "--- NEXT INSTRUCTION ---\n";
     os << "  " << this->m_nextInstructionIdx << " | "
        << this->m_code[ this->m_nextInstructionIdx ] << "\n";
 }
@@ -152,10 +181,10 @@ Vm::printRegisters( std::ostream & os ) const {
     printRegister( this->m_accumulator );
     os << "--- REGISTERS ---\n";
     const auto sbp = this->m_stack.m_baseIdx;
-    const auto stp = this->m_stack.m_topIdx;
-    os << "sbp: " << sbp << " stp: " << stp << "\n";
-    for ( size_t i = sbp; i < stp; ++i ) {
-        std::cout << std::setw( 2 ) << std::setfill( ' ' ) << i << " | ";
+    const auto sp = this->m_stack.m_topIdx;
+    os << "sbp: " << sbp << " sp: " << sp << "\n";
+    for ( size_t i = sbp; i < sp; ++i ) {
+        std::cout << std::setw( 2 ) << std::setfill( ' ' ) << i - sbp << " | ";
         printRegister( this->m_stack.m_stack[ i ] );
     }
 }
@@ -179,9 +208,10 @@ Vm::printCurrentState( std::ostream & os ) const {
 }
 
 size_t
-Vm::beginLabel( const std::string & label ) {
+Vm::beginLabel( const std::string & label, size_t frameSize ) {
     this->labels[ label ] = this->m_code.size();
     this->functionTable.push_back( this->m_code.size() );
+    this->functionFrameSizeTable.push_back( frameSize );
     return this->functionTable.size() - 1;
 }
 

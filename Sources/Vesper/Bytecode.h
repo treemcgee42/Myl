@@ -16,7 +16,9 @@ enum class Opcode : U8 {
     ZERO_ACC,
     // --- begin control flow -------------------------------------------------------
     ARG,
-    CALL
+    ARG_IMM,
+    CALL,
+    RET
     // --- end control flow ---------------------------------------------------------
 };
 

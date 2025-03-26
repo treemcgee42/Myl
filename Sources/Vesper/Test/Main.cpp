@@ -13,6 +13,7 @@ main() {
     testBytecodeZeroAcc( &ctx );
     testBytecodeCall( &ctx );
     testBytecodeArg( &ctx );
+    testBytecodeRet( &ctx );
 
     return 0;
 }
