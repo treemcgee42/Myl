@@ -5,6 +5,8 @@
 #include <variant>
 #include <vector>
 
+#include "Error.h"
+
 using I32 = std::int32_t;
 using F64 = double;
 
@@ -20,12 +22,6 @@ const char * tokenKindStr( TokenKind tk );
 
 typedef std::variant< I32, F64 > TokenData;
 
-struct SourceCodeLocation {
-    // Region is str[ byteOffset:byteOffset+byteLength ].
-    int byteOffset;
-    int byteLength;
-};
-
 struct Token {
     TokenKind kind;
     TokenData data;
@@ -34,8 +30,13 @@ struct Token {
 
 class Lexer {
  public:
+    struct Result {
+        std::vector< Token > tokens;
+        bool error;
+    };
+
  Lexer( const std::string & input ): m_input( input ) {}
-  std::vector< Token > lex();
+    Result lex();
 
   std::string_view getStringView( SourceCodeLocation loc );
 
@@ -66,4 +67,5 @@ class Lexer {
   int m_currentByteOffset = 0;
   int m_codepoint = 0;
   int m_codepointSize = 0;
+    bool error = false;
 };

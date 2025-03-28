@@ -23,7 +23,8 @@ endif()
 
 # --- Main project ------------------------------------------------------------------
 
-set(MYL_SOURCES Sources/Lexer.cpp
+set(MYL_SOURCES Sources/Error.cpp
+                Sources/Lexer.cpp
                 Sources/Main.cpp
                 Sources/Parser.cpp
                 Sources/Repl.cpp)

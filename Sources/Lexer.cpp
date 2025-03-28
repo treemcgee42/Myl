@@ -268,13 +268,16 @@ Lexer::eatToken() {
                 ( this->m_codepoint == '-' ) ) {
         token = this->eatNumber();
     } else {
-        tassert( &TC, false, "" );
+        emitSourceError( this->m_input,
+                         SourceCodeLocation { initialByteOffset, 1 },
+                         "Unexpected codepoint" );
+        this->error = true;
     }
 
     return token;
 }
 
-std::vector< Token >
+Lexer::Result
 Lexer::lex() {
     std::vector< Token > tokens;
     while ( !this->endOfInput() ) {
@@ -283,8 +286,11 @@ Lexer::lex() {
             break;
         }
         tokens.push_back( this->eatToken() );
+        if ( this->error ) {
+            break;
+        }
     }
-    return std::move( tokens );
+    return { std::move( tokens ), this->error };
 }
 
 #ifdef MYL_TEST
@@ -294,7 +300,9 @@ testLexLex( Tm42_TestContext * ctx ) {
 
     {
         auto lexer = Lexer( "(defun foo () 2)" );
-        const auto tokens = lexer.lex();
+        const auto lexResult = lexer.lex();
+        TM42_TEST_ASSERT( ctx, !lexResult.error );
+        const auto tokens = lexResult.tokens;
 
         TM42_TEST_ASSERT( ctx, tokens[ 0 ].kind == TokenKind::LPAREN );
         TM42_TEST_ASSERT( ctx, tokens[ 0 ].loc.byteOffset == 0 );

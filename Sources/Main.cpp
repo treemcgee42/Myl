@@ -1,6 +1,8 @@
 
 #include <Tracing/Tracing.h>
 
+#include "Lexer.h"
+#include "Parser.h"
 #include "Repl.h"
 
 struct TraceContext TC;
@@ -42,7 +44,22 @@ main() {
           t0( &TC, "Closing REPL..." );
           break;
       }
-      t0( &TC, "Read input: %s", input->c_str() );
+
+      auto lexer = Lexer( *input );
+      auto lexResult = lexer.lex();
+      std::cout << "--- LEX ---\n";
+      std::cout << "Lexed " << lexResult.tokens.size() << " tokens\n";
+      if ( lexResult.error ) {
+          continue;
+      }
+
+      auto parser = Parser( lexResult.tokens );
+      auto ast = parser.parse();
+      std::cout << "--- INITIAL PARSE ---\n";
+      std::cout << "Parsed " << ast.size() << " nodes\n";
+      for ( const auto & sexpr : ast ) {
+          std::cout << sexpr << "\n";
+      }
   }
 
   deinit_tracing(&TC);
