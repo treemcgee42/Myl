@@ -53,7 +53,7 @@ main() {
           continue;
       }
 
-      auto parser = Parser( lexResult.tokens );
+      auto parser = Parser( *input, lexResult.tokens );
       auto ast = parser.parse();
       std::cout << "--- INITIAL PARSE ---\n";
       std::cout << "Parsed " << ast.size() << " nodes\n";

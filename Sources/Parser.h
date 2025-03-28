@@ -44,8 +44,14 @@ struct SExpr {
 
 class Parser {
 public:
-    Parser( const std::vector< Token > & tokens ): m_tokens{ tokens } {}
-    std::vector< SExpr > parse();
+    struct Result {
+        std::vector< SExpr > sexprs;
+        bool error;
+    };
+
+    Parser( const std::string & source, const std::vector< Token > & tokens )
+        : source( source ), m_tokens{ tokens } {}
+    Result parse();
 
     // --- begin parse functions ----------------------------------------------------
     // These functions generally assume that the first token of the thing they are
@@ -65,7 +71,9 @@ public:
 private:
     void expectToken( TokenKind e );
 
+    const std::string & source;
     const std::vector< Token > & m_tokens;
     int m_nextTokenIdx = 0;
     Token m_currentToken;
+    bool error = false;
 };

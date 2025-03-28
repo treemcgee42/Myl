@@ -52,7 +52,13 @@ Parser::parseCons() {
     this->eatToken();
 
     ConsNode cons;
+    if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
+        return cons;
+    }
     auto sExpr = this->parseSExpr();
+    if ( this->error ) {
+        return cons;
+    }
     cons.car = std::make_unique< SExpr >( std::move( sExpr ) );
     cons.cdr = std::make_unique< SExpr >();
     if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
@@ -60,7 +66,13 @@ Parser::parseCons() {
         return SExpr( std::move( cons ) );
     }
 
+    if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
+        return cons;
+    }
     sExpr = this->parseSExpr();
+    if ( this->error ) {
+        return cons;
+    }
     cons.cdr = std::make_unique< SExpr >( std::move( sExpr ) );
 
     // I could use a reference, but the pointer makes it clearer to me since move
@@ -73,7 +85,9 @@ Parser::parseCons() {
         }
 
         sExpr = this->parseSExpr();
-        assert( sExpr.kind != SExprKind::NIL );
+        if ( this->error ) {
+            return SExpr();
+        }
 
         ConsNode newCons;
         newCons.car = std::move( std::move( *workingCdr ) );
@@ -93,22 +107,22 @@ testParseCons( Tm42_TestContext * ctx ) {
     TM42_BEGIN_TEST( "Parse cons." );
 
     { // Case: empty
-        auto lexer = Lexer( "()" );
-        const auto tokens = lexer.lex();
-        auto parser = Parser( tokens );
+        const auto src = "()";
+        auto lexer = Lexer( src );
+        const auto lexResult = lexer.lex();
+        auto parser = Parser( src, lexResult.tokens );
         parser.eatToken();
         const auto consSExpr = parser.parseCons();
         TM42_TEST_ASSERT( ctx, consSExpr.kind == SExprKind::CONS );
         const auto & consNode = std::get< ConsNode >( consSExpr.data );
-
-        TM42_TEST_ASSERT( ctx, consNode.car->kind == SExprKind::NIL );
-
-        TM42_TEST_ASSERT( ctx, consNode.cdr->kind == SExprKind::NIL );
+        TM42_TEST_ASSERT( ctx, consNode.car == nullptr );
+        TM42_TEST_ASSERT( ctx, consNode.cdr == nullptr );
     }
     { // Case: single item list
-        auto lexer = Lexer( "(1)" );
-        const auto tokens = lexer.lex();
-        auto parser = Parser( tokens );
+        const auto src = "(1)";
+        auto lexer = Lexer( src );
+        const auto lexResult = lexer.lex();
+        auto parser = Parser( src, lexResult.tokens );
         parser.eatToken();
         const auto consSExpr = parser.parseCons();
         TM42_TEST_ASSERT( ctx, consSExpr.kind == SExprKind::CONS );
@@ -121,9 +135,10 @@ testParseCons( Tm42_TestContext * ctx ) {
         TM42_TEST_ASSERT( ctx, consNode.cdr->kind == SExprKind::NIL );
     }
     { // Case: two item list
-        auto lexer = Lexer( "(1 2.0)" );
-        const auto tokens = lexer.lex();
-        auto parser = Parser( tokens );
+        const auto src = "(1 2.0)";
+        auto lexer = Lexer( src );
+        const auto lexResult = lexer.lex();
+        auto parser = Parser( src, lexResult.tokens );
         parser.eatToken();
         const auto consSExpr = parser.parseCons();
         TM42_TEST_ASSERT( ctx, consSExpr.kind == SExprKind::CONS );
@@ -136,9 +151,10 @@ testParseCons( Tm42_TestContext * ctx ) {
         TM42_TEST_ASSERT( ctx, consNode.cdr->kind == SExprKind::FLOAT64 );
     }
     { // Case: three item list
-        auto lexer = Lexer( "(1 2 3)" );
-        const auto tokens = lexer.lex();
-        auto parser = Parser( tokens );
+        const auto src = "(1 2 3)";
+        auto lexer = Lexer( src );
+        const auto lexResult = lexer.lex();
+        auto parser = Parser( src, lexResult.tokens );
         parser.eatToken();
         const auto consSExpr = parser.parseCons();
         TM42_TEST_ASSERT( ctx, consSExpr.kind == SExprKind::CONS );
@@ -176,15 +192,21 @@ Parser::parseSExpr() {
         this->eatToken();
         return SExpr( data );
     } else {
+        emitSourceError( this->source, this->m_currentToken.loc,
+                         "Could not parse SExpr starting here." );
+        this->error = true;
         return SExpr();
     }
 }
 
-std::vector< SExpr >
+Parser::Result
 Parser::parse() {
     std::vector< SExpr > toReturn;
     while ( this->eatToken() ) {
         toReturn.push_back( this->parseSExpr() );
+        if ( this->error ) {
+            break;
+        }
     }
-    return std::move( toReturn );
+    return { std::move( toReturn ), this->error };
 }
