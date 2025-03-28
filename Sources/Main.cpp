@@ -11,6 +11,8 @@ struct TraceContext TC;
 
 #include <Test/Test.h>
 
+extern void testSymbolInterner( Tm42_TestContext * ctx );
+
 extern void testLexEatIdent( Tm42_TestContext * ctx );
 extern void testLexEatNumber( Tm42_TestContext * ctx );
 extern void testLexLex( Tm42_TestContext * ctx );
@@ -23,6 +25,8 @@ main() {
     t0( &TC, "Tracing initialized." );
 
     Tm42_TestContext ctx;
+
+    testSymbolInterner( &ctx );
 
     testLexEatIdent( &ctx );
     testLexEatNumber( &ctx );

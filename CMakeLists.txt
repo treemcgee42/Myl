@@ -24,6 +24,7 @@ endif()
 # --- Main project ------------------------------------------------------------------
 
 set(MYL_SOURCES Sources/Error.cpp
+                Sources/Intern.cpp
                 Sources/Lexer.cpp
                 Sources/Main.cpp
                 Sources/Parser.cpp
