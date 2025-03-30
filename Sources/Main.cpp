@@ -60,8 +60,8 @@ main() {
       auto parser = Parser( *input, lexResult.tokens );
       auto ast = parser.parse();
       std::cout << "--- INITIAL PARSE ---\n";
-      std::cout << "Parsed " << ast.size() << " nodes\n";
-      for ( const auto & sexpr : ast ) {
+      std::cout << "Parsed " << ast.sexprs.size() << " nodes\n";
+      for ( const auto & sexpr : ast.sexprs ) {
           std::cout << sexpr << "\n";
       }
   }
