@@ -181,22 +181,26 @@ testParseCons( Tm42_TestContext * ctx ) {
 
 SExpr
 Parser::parseSExpr() {
-    if ( this->m_currentToken.kind == TokenKind::LPAREN ) {
+    switch ( this->m_currentToken.kind ) {
+    case TokenKind::LPAREN:
         return SExpr( this->parseCons() );
-    } else if ( this->m_currentToken.kind == TokenKind::INT32 ) {
+    case TokenKind::INT32: {
         const auto data = std::get< I32 >( this->m_currentToken.data );
         this->eatToken();
         return SExpr( data );
-    } else if ( this->m_currentToken.kind == TokenKind::FLOAT64 ) {
+    }
+    case TokenKind::FLOAT64: {
         const auto data = std::get< F64 >( this->m_currentToken.data );
         this->eatToken();
         return SExpr( data );
-    } else {
+    }
+    default: {
         emitSourceError( this->source, this->m_currentToken.loc,
                          "Could not parse SExpr starting here." );
         this->error = true;
         return SExpr();
     }
+    };
 }
 
 Parser::Result
