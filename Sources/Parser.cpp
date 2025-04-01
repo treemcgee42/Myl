@@ -22,7 +22,20 @@ operator<<( std::ostream& os, const SExpr & obj ) {
         return os << "F64<" << std::get< F64 >( obj.data ) << ">";
     case SExprKind::CONS: {
         const auto & cons = std::get< ConsNode >( obj.data );
-        return os << "(" << ( *cons.car ) << " " << ( *cons.cdr ) << ")";
+        os << "(";
+        if ( cons.car ) {
+            os << ( *cons.car );
+        } else {
+            os << "NIL";
+        }
+        os << " ";
+        if ( cons.cdr ) {
+            os << ( *cons.cdr );
+        } else {
+            os << "NIL";
+        }
+        os << ")";
+        return os;
     }
     case SExprKind::SYMBOL: {
         return os << "SYMBOL<" << std::get< InternedSymbol >( obj.data ) << ">";
