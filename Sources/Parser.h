@@ -12,43 +12,63 @@
 using I32 = std::int32_t;
 using F64 = double;
 
-enum class SExprKind {
-    NIL,
-    INT32,
-    FLOAT64,
-    CONS,
-    SYMBOL,
-    // TODO: symbols
+namespace SExpr {
+
+class Base {
+public:
+    virtual ~Base() {}  // Enables RTTI and ensures proper cleanup.
+    virtual void print( std::ostream & os ) const;
 };
 
-struct SExpr;
-
-struct ConsNode {
-    std::unique_ptr< SExpr > car;
-    std::unique_ptr< SExpr > cdr;
+class Nil: public Base {
+public:
+    Nil() = default;
+    virtual void print( std::ostream & os ) const override;
 };
 
-typedef std::variant< ConsNode, I32, F64, InternedSymbol > SExprData;
+class Int32: public Base {
+public:
+    I32 value;
+    Int32( I32 value ): value( value ) {}
 
-struct SExpr {
-    SExprKind kind;
-    SExprData data;
-
-    SExpr() : kind( SExprKind::NIL ), data( 0 ) {}
-    SExpr( I32 i ) : kind( SExprKind::INT32 ), data( i ) {}
-    SExpr( F64 f ) : kind( SExprKind::FLOAT64 ), data( f ) {}
-    SExpr( ConsNode consNode )
-        : kind( SExprKind::CONS ), data( std::move( consNode ) ) {}
-    SExpr( InternedSymbol internedSymbol )
-        : kind( SExprKind::SYMBOL ), data( internedSymbol ) {}
-
-    friend std::ostream & operator<<( std::ostream & os, const SExpr & obj );
+    virtual void print( std::ostream & os ) const override;
 };
 
+class Float64: public Base {
+public:
+    F64 value;
+    Float64( F64 value ): value( value ) {}
+
+    virtual void print( std::ostream & os ) const override;
+};
+
+class Symbol: public Base {
+public:
+    InternedSymbol value;
+    Symbol( InternedSymbol value ): value( value ) {}
+
+    virtual void print( std::ostream & os ) const override;
+};
+
+class Cons: public Base {
+public:
+    std::unique_ptr< Base > car;
+    std::unique_ptr< Base > cdr;
+
+    Cons() = default;
+    Cons( std::unique_ptr< Base > car, std::unique_ptr< Base > cdr )
+        : car( std::move( car ) ), cdr( std::move( cdr ) ) {}
+
+    virtual void print( std::ostream & os ) const override;
+};
+
+std::ostream & operator<<( std::ostream & os, const Base & obj );
+
+} // namespace SExpr
 class Parser {
 public:
     struct Result {
-        std::vector< SExpr > sexprs;
+        std::vector< std::unique_ptr< SExpr::Base > > sexprs;
         bool error;
     };
 
@@ -63,8 +83,9 @@ public:
     // thing we just parsed, if any.
 
     // cons := '(' SExpr SExpr? ')'
-    SExpr parseCons();
-    SExpr parseSExpr();
+    SExpr::Cons parseCons();
+    // We have to return a pointer or else we'll lose RTTI... ):
+    std::unique_ptr< SExpr::Base > parseSExpr();
 
     // --- end parse functions ------------------------------------------------------
 

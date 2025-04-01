@@ -11,39 +11,57 @@
 
 extern TraceContext TC;
 
-std::ostream &
-operator<<( std::ostream& os, const SExpr & obj ) {
-    switch ( obj.kind ) {
-    case SExprKind::NIL:
-        return os << "NIL";
-    case SExprKind::INT32:
-        return os << "I32<" << std::get< I32 >( obj.data ) << ">";
-    case SExprKind::FLOAT64:
-        return os << "F64<" << std::get< F64 >( obj.data ) << ">";
-    case SExprKind::CONS: {
-        const auto & cons = std::get< ConsNode >( obj.data );
-        os << "(";
-        if ( cons.car ) {
-            os << ( *cons.car );
-        } else {
-            os << "NIL";
-        }
-        os << " ";
-        if ( cons.cdr ) {
-            os << ( *cons.cdr );
-        } else {
-            os << "NIL";
-        }
-        os << ")";
-        return os;
-    }
-    case SExprKind::SYMBOL: {
-        return os << "SYMBOL<" << std::get< InternedSymbol >( obj.data ) << ">";
-    }
-    default:
-        return os << "???";
-    }
+namespace SExpr {
+
+void
+Base::print( std::ostream & os ) const {
+    os << "???";
 }
+
+void
+Nil::print( std::ostream & os ) const {
+    os << "NIL";
+}
+
+void
+Int32::print( std::ostream & os ) const {
+    os << "I32<" << this->value << ">";
+}
+
+void
+Float64::print( std::ostream & os ) const {
+    os << "F64<" << this->value << ">";
+}
+
+void
+Symbol::print( std::ostream & os ) const {
+    os << "SYM<" << this->value << ">";
+}
+
+void
+Cons::print( std::ostream & os ) const {
+    os << "(";
+    if ( this->car ) {
+        os << *this->car;
+    } else {
+        os << "NIL";
+    }
+    os << " ";
+    if ( this->cdr ) {
+        os << *this->cdr;
+    } else {
+        os << "NIL";
+    }
+    os << ")";
+}
+
+std::ostream &
+operator<<( std::ostream & os, const Base & obj ) {
+    obj.print( os );
+    return os;
+}
+
+} // namespace SExpr
 
 void
 Parser::expectToken( TokenKind e ) {
@@ -62,12 +80,12 @@ Parser::eatToken() {
     return &this->m_currentToken;
 }
 
-SExpr
+SExpr::Cons
 Parser::parseCons() {
     this->expectToken( TokenKind::LPAREN );
     this->eatToken();
 
-    ConsNode cons;
+    SExpr::Cons cons;
     if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
         return cons;
     }
@@ -75,11 +93,11 @@ Parser::parseCons() {
     if ( this->error ) {
         return cons;
     }
-    cons.car = std::make_unique< SExpr >( std::move( sExpr ) );
-    cons.cdr = std::make_unique< SExpr >();
+    cons.car = std::move( sExpr );
+    cons.cdr = std::make_unique< SExpr::Nil >();
     if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
         this->eatToken();
-        return SExpr( std::move( cons ) );
+        return std::move( cons );
     }
 
     if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
@@ -89,11 +107,11 @@ Parser::parseCons() {
     if ( this->error ) {
         return cons;
     }
-    cons.cdr = std::make_unique< SExpr >( std::move( sExpr ) );
+    cons.cdr = std::move( sExpr );
 
     // I could use a reference, but the pointer makes it clearer to me since move
     // semantics are heavily in play.
-    std::unique_ptr< SExpr > *  workingCdr = &cons.cdr;
+    std::unique_ptr< SExpr::Base > *  workingCdr = &cons.cdr;
     while ( true ) {
         if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
             this->eatToken();
@@ -102,19 +120,18 @@ Parser::parseCons() {
 
         sExpr = this->parseSExpr();
         if ( this->error ) {
-            return SExpr();
+            return SExpr::Cons();
         }
 
-        ConsNode newCons;
-        newCons.car = std::move( std::move( *workingCdr ) );
-        newCons.cdr = std::make_unique< SExpr >( std::move( sExpr ) );
-        auto newConsSExpr = std::make_unique< SExpr >( std::move( newCons ) );
+        auto newCons = std::make_unique< SExpr::Cons >(
+            std::move( *workingCdr ),
+            std::move( sExpr ) );
 
-        *workingCdr = std::move( newConsSExpr );
-        workingCdr = &std::get< ConsNode >( ( *workingCdr )->data ).cdr;
+        *workingCdr = std::move( newCons );
+        workingCdr = &( dynamic_cast< SExpr::Cons * >( workingCdr->get() )->cdr );
     }
 
-    return SExpr( std::move( cons ) );
+    return cons;
 }
 
 #ifdef MYL_TEST
@@ -128,11 +145,9 @@ testParseCons( Tm42_TestContext * ctx ) {
         const auto lexResult = lexer.lex();
         auto parser = Parser( src, lexResult.tokens );
         parser.eatToken();
-        const auto consSExpr = parser.parseCons();
-        TM42_TEST_ASSERT( ctx, consSExpr.kind == SExprKind::CONS );
-        const auto & consNode = std::get< ConsNode >( consSExpr.data );
-        TM42_TEST_ASSERT( ctx, consNode.car == nullptr );
-        TM42_TEST_ASSERT( ctx, consNode.cdr == nullptr );
+        const auto cons = parser.parseCons();
+        TM42_TEST_ASSERT( ctx, cons.car == nullptr );
+        TM42_TEST_ASSERT( ctx, cons.cdr == nullptr );
     }
     { // Case: single item list
         const auto src = "(1)";
@@ -140,15 +155,12 @@ testParseCons( Tm42_TestContext * ctx ) {
         const auto lexResult = lexer.lex();
         auto parser = Parser( src, lexResult.tokens );
         parser.eatToken();
-        const auto consSExpr = parser.parseCons();
-        TM42_TEST_ASSERT( ctx, consSExpr.kind == SExprKind::CONS );
-        const auto & consNode = std::get< ConsNode >( consSExpr.data );
-
-        TM42_TEST_ASSERT( ctx, consNode.car->kind == SExprKind::INT32 );
-        const auto carData = std::get< I32 >( consNode.car->data );
-        TM42_TEST_ASSERT( ctx, carData == 1 );
-
-        TM42_TEST_ASSERT( ctx, consNode.cdr->kind == SExprKind::NIL );
+        const SExpr::Cons cons = parser.parseCons();
+        std::cout << cons << "\n";
+        const auto carPtr = dynamic_cast< SExpr::Int32 * >( cons.car.get() );
+        TM42_TEST_ASSERT( ctx, carPtr );
+        TM42_TEST_ASSERT( ctx, carPtr->value == 1 );
+        TM42_TEST_ASSERT( ctx, dynamic_cast< SExpr::Nil * >( cons.cdr.get() ) );
     }
     { // Case: two item list
         const auto src = "(1 2.0)";
@@ -156,15 +168,14 @@ testParseCons( Tm42_TestContext * ctx ) {
         const auto lexResult = lexer.lex();
         auto parser = Parser( src, lexResult.tokens );
         parser.eatToken();
-        const auto consSExpr = parser.parseCons();
-        TM42_TEST_ASSERT( ctx, consSExpr.kind == SExprKind::CONS );
-        const auto & consNode = std::get< ConsNode >( consSExpr.data );
+        const auto cons = parser.parseCons();
 
-        TM42_TEST_ASSERT( ctx, consNode.car->kind == SExprKind::INT32 );
-        const auto carData = std::get< I32 >( consNode.car->data );
-        TM42_TEST_ASSERT( ctx, carData == 1 );
+        const auto car = dynamic_cast< SExpr::Int32 * >( cons.car.get() );
+        TM42_TEST_ASSERT( ctx, car );
+        TM42_TEST_ASSERT( ctx, car->value == 1 );
 
-        TM42_TEST_ASSERT( ctx, consNode.cdr->kind == SExprKind::FLOAT64 );
+        const auto cdr = dynamic_cast< SExpr::Float64 * >( cons.cdr.get() );
+        TM42_TEST_ASSERT( ctx, cdr );
     }
     { // Case: three item list
         const auto src = "(1 2 3)";
@@ -172,61 +183,64 @@ testParseCons( Tm42_TestContext * ctx ) {
         const auto lexResult = lexer.lex();
         auto parser = Parser( src, lexResult.tokens );
         parser.eatToken();
-        const auto consSExpr = parser.parseCons();
-        TM42_TEST_ASSERT( ctx, consSExpr.kind == SExprKind::CONS );
-        const auto & consNode1 = std::get< ConsNode >( consSExpr.data );
+        const auto cons = parser.parseCons();
 
-        TM42_TEST_ASSERT( ctx, consNode1.car->kind == SExprKind::INT32 );
-        auto data = std::get< I32 >( consNode1.car->data );
-        TM42_TEST_ASSERT( ctx, data == 1 );
+        const auto car = dynamic_cast< SExpr::Int32 * >( cons.car.get() );
+        TM42_TEST_ASSERT( ctx, car );
+        TM42_TEST_ASSERT( ctx, car->value == 1 );
 
-        TM42_TEST_ASSERT( ctx, consNode1.cdr->kind == SExprKind::CONS );
-        const auto & consNode2 = std::get< ConsNode >( consNode1.cdr->data );
-        TM42_TEST_ASSERT( ctx, consNode2.car->kind == SExprKind::INT32 );
-        data = std::get< I32 >( consNode2.car->data );
-        TM42_TEST_ASSERT( ctx, data == 2 );
+        const auto cdr = dynamic_cast< SExpr::Cons * >( cons.cdr.get() );
+        TM42_TEST_ASSERT( ctx, cdr );
+        const auto cdrCar = dynamic_cast< SExpr::Int32 * >( cdr->car.get() );
+        TM42_TEST_ASSERT( ctx, cdrCar );
+        TM42_TEST_ASSERT( ctx, cdrCar->value == 2 );
 
-        TM42_TEST_ASSERT( ctx, consNode2.cdr->kind == SExprKind::INT32 );
-        data = std::get< I32 >( consNode2.cdr->data );
-        TM42_TEST_ASSERT( ctx, data == 3 );
+        const auto cdrCdr = dynamic_cast< SExpr::Int32 * >( cdr->cdr.get() );
+        TM42_TEST_ASSERT( ctx, cdrCdr );
+        TM42_TEST_ASSERT( ctx, cdrCdr->value == 3 );
     }
 
     TM42_END_TEST();
 }
 #endif // MYL_TEST
 
-SExpr
+std::unique_ptr< SExpr::Base >
 Parser::parseSExpr() {
     switch ( this->m_currentToken.kind ) {
     case TokenKind::LPAREN:
-        return SExpr( this->parseCons() );
+        std::cout << "parsing cons" << "\n";
+        return std::make_unique< SExpr::Cons >( this->parseCons() );
     case TokenKind::INT32: {
+        std::cout << "parsing int32" << "\n";
         const auto data = std::get< I32 >( this->m_currentToken.data );
         this->eatToken();
-        return SExpr( data );
+        return std::make_unique< SExpr::Int32 >( data );
     }
     case TokenKind::FLOAT64: {
+        std::cout << "parsing float64" << "\n";
         const auto data = std::get< F64 >( this->m_currentToken.data );
         this->eatToken();
-        return SExpr( data );
+        return std::make_unique< SExpr::Float64 >( data );
     }
     case TokenKind::IDENT: {
+        std::cout << "parsing ident" << "\n";
         const auto data = std::get< InternedSymbol >( this->m_currentToken.data );
         this->eatToken();
-        return SExpr( data );
+        return std::make_unique< SExpr::Symbol >( data );
     }
     default: {
+        std::cout << "parsing error" << "\n";
         emitSourceError( this->source, this->m_currentToken.loc,
                          "Could not parse SExpr starting here." );
         this->error = true;
-        return SExpr();
+        return std::make_unique< SExpr::Base >();
     }
     };
 }
 
 Parser::Result
 Parser::parse() {
-    std::vector< SExpr > toReturn;
+    std::vector< std::unique_ptr< SExpr::Base > > toReturn;
     while ( this->eatToken() ) {
         toReturn.push_back( this->parseSExpr() );
         if ( this->error ) {

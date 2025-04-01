@@ -62,7 +62,7 @@ main() {
       std::cout << "--- INITIAL PARSE ---\n";
       std::cout << "Parsed " << ast.sexprs.size() << " nodes\n";
       for ( const auto & sexpr : ast.sexprs ) {
-          std::cout << sexpr << "\n";
+          std::cout << *sexpr << "\n";
       }
   }
 
