@@ -30,6 +30,10 @@ tokenKindStr( TokenKind tk ) {
     }
 }
 
+Lexer::Lexer( const std::string & input ): m_input( input ) {
+    this->symbolInterner = std::make_shared< SymbolInterner >();
+}
+
 std::string_view
 Lexer::getStringView( SourceCodeLocation loc ) {
     return std::string_view( this->m_input ).substr(
@@ -88,14 +92,15 @@ Lexer::eatIdent() {
     } while ( !this->endOfInput() &&
               isValidIdentContinuation( this->m_codepoint ) );
 
-    return Token {
-        TokenKind::IDENT,
-        TokenData {},
-        SourceCodeLocation{
-            initialByteOffset,
-            this->m_currentByteOffset - initialByteOffset
-        }
+    const auto loc = SourceCodeLocation {
+        initialByteOffset,
+        this->m_currentByteOffset - initialByteOffset
     };
+
+    TokenData data = ( this->symbolInterner->intern(
+        std::string( this->getStringView( loc ) ) ) );
+
+    return { TokenKind::IDENT, data, loc };
 }
 
 #ifdef MYL_TEST

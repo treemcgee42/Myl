@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Error.h"
+#include "Intern.h"
 
 using I32 = std::int32_t;
 using F64 = double;
@@ -20,7 +21,7 @@ enum class TokenKind {
 
 const char * tokenKindStr( TokenKind tk );
 
-typedef std::variant< I32, F64 > TokenData;
+typedef std::variant< InternedSymbol, I32, F64 > TokenData;
 
 struct Token {
     TokenKind kind;
@@ -35,7 +36,7 @@ class Lexer {
         bool error;
     };
 
- Lexer( const std::string & input ): m_input( input ) {}
+    Lexer( const std::string & input );
     Result lex();
 
   std::string_view getStringView( SourceCodeLocation loc );
@@ -68,4 +69,5 @@ class Lexer {
   int m_codepoint = 0;
   int m_codepointSize = 0;
     bool error = false;
+    std::shared_ptr< SymbolInterner > symbolInterner;
 };

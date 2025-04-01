@@ -24,6 +24,9 @@ operator<<( std::ostream& os, const SExpr & obj ) {
         const auto & cons = std::get< ConsNode >( obj.data );
         return os << "(" << ( *cons.car ) << " " << ( *cons.cdr ) << ")";
     }
+    case SExprKind::SYMBOL: {
+        return os << "SYMBOL<" << std::get< InternedSymbol >( obj.data ) << ">";
+    }
     default:
         return os << "???";
     }
@@ -191,6 +194,11 @@ Parser::parseSExpr() {
     }
     case TokenKind::FLOAT64: {
         const auto data = std::get< F64 >( this->m_currentToken.data );
+        this->eatToken();
+        return SExpr( data );
+    }
+    case TokenKind::IDENT: {
+        const auto data = std::get< InternedSymbol >( this->m_currentToken.data );
         this->eatToken();
         return SExpr( data );
     }

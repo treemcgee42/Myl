@@ -17,6 +17,7 @@ enum class SExprKind {
     INT32,
     FLOAT64,
     CONS,
+    SYMBOL,
     // TODO: symbols
 };
 
@@ -27,7 +28,7 @@ struct ConsNode {
     std::unique_ptr< SExpr > cdr;
 };
 
-typedef std::variant< ConsNode, I32, F64 > SExprData;
+typedef std::variant< ConsNode, I32, F64, InternedSymbol > SExprData;
 
 struct SExpr {
     SExprKind kind;
@@ -38,6 +39,8 @@ struct SExpr {
     SExpr( F64 f ) : kind( SExprKind::FLOAT64 ), data( f ) {}
     SExpr( ConsNode consNode )
         : kind( SExprKind::CONS ), data( std::move( consNode ) ) {}
+    SExpr( InternedSymbol internedSymbol )
+        : kind( SExprKind::SYMBOL ), data( internedSymbol ) {}
 
     friend std::ostream & operator<<( std::ostream & os, const SExpr & obj );
 };
