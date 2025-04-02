@@ -104,32 +104,31 @@ Parser::parseCons() {
     this->eatToken();
 
     SExpr::Cons cons;
+
     if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
+        // Empty list.
         return cons;
     }
+
     auto sExpr = this->parseSExpr();
     if ( this->error ) {
         return cons;
     }
     cons.car = std::move( sExpr );
-    cons.cdr = std::make_unique< SExpr::Nil >();
+
     if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
+        // Nil CDR.
         this->eatToken();
         return std::move( cons );
     }
 
-    if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
-        return cons;
-    }
     sExpr = this->parseSExpr();
     if ( this->error ) {
         return cons;
     }
-    cons.cdr = std::move( sExpr );
+    cons.cdr = std::make_unique< SExpr::Cons >( std::move( sExpr ) );
 
-    // I could use a reference, but the pointer makes it clearer to me since move
-    // semantics are heavily in play.
-    std::unique_ptr< SExpr::Base > *  workingCdr = &cons.cdr;
+    auto * workingCdr = dynamic_cast< SExpr::Cons * >( cons.cdr.get() );
     while ( true ) {
         if ( this->m_currentToken.kind == TokenKind::RPAREN ) {
             this->eatToken();
@@ -138,15 +137,12 @@ Parser::parseCons() {
 
         sExpr = this->parseSExpr();
         if ( this->error ) {
-            return SExpr::Cons();
+            return cons;
         }
 
-        auto newCons = std::make_unique< SExpr::Cons >(
-            std::move( *workingCdr ),
-            std::move( sExpr ) );
-
-        *workingCdr = std::move( newCons );
-        workingCdr = &( dynamic_cast< SExpr::Cons * >( workingCdr->get() )->cdr );
+        auto newCons = std::make_unique< SExpr::Cons >( std::move( sExpr ) );
+        workingCdr->cdr = std::move( newCons );
+        workingCdr = dynamic_cast< SExpr::Cons * >( workingCdr->cdr.get() );
     }
 
     return cons;
@@ -178,7 +174,7 @@ testParseCons( Tm42_TestContext * ctx ) {
         const auto carPtr = dynamic_cast< SExpr::Int32 * >( cons.car.get() );
         TM42_TEST_ASSERT( ctx, carPtr );
         TM42_TEST_ASSERT( ctx, carPtr->value == 1 );
-        TM42_TEST_ASSERT( ctx, dynamic_cast< SExpr::Nil * >( cons.cdr.get() ) );
+        TM42_TEST_ASSERT( ctx, cons.cdr == nullptr );
     }
     { // Case: two item list
         const auto src = "(1 2.0)";
@@ -192,8 +188,11 @@ testParseCons( Tm42_TestContext * ctx ) {
         TM42_TEST_ASSERT( ctx, car );
         TM42_TEST_ASSERT( ctx, car->value == 1 );
 
-        const auto cdr = dynamic_cast< SExpr::Float64 * >( cons.cdr.get() );
+        const auto cdr = dynamic_cast< SExpr::Cons * >( cons.cdr.get() );
         TM42_TEST_ASSERT( ctx, cdr );
+        const auto cdrCar = dynamic_cast< SExpr::Float64 * >( cdr->car.get() );
+        TM42_TEST_ASSERT( ctx, cdrCar );
+        TM42_TEST_ASSERT( ctx, cdr->cdr == nullptr );
     }
     { // Case: three item list
         const auto src = "(1 2 3)";
@@ -213,9 +212,12 @@ testParseCons( Tm42_TestContext * ctx ) {
         TM42_TEST_ASSERT( ctx, cdrCar );
         TM42_TEST_ASSERT( ctx, cdrCar->value == 2 );
 
-        const auto cdrCdr = dynamic_cast< SExpr::Int32 * >( cdr->cdr.get() );
+        const auto cdrCdr = dynamic_cast< SExpr::Cons * >( cdr->cdr.get() );
         TM42_TEST_ASSERT( ctx, cdrCdr );
-        TM42_TEST_ASSERT( ctx, cdrCdr->value == 3 );
+        const auto cdrCdrCar = dynamic_cast< SExpr::Int32 * >( cdrCdr->car.get() );
+        TM42_TEST_ASSERT( ctx, cdrCdrCar );
+        TM42_TEST_ASSERT( ctx, cdrCdrCar->value == 3 );
+        TM42_TEST_ASSERT( ctx, cdrCdr->cdr == nullptr );
     }
 
     TM42_END_TEST();

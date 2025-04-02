@@ -64,6 +64,7 @@ public:
     std::unique_ptr< Base > cdr;
 
     Cons() = default;
+    Cons( std::unique_ptr< Base > car ): car( std::move( car ) ) {}
     Cons( std::unique_ptr< Base > car, std::unique_ptr< Base > cdr )
         : car( std::move( car ) ), cdr( std::move( cdr ) ) {}
 
