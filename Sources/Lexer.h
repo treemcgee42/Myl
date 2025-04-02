@@ -17,6 +17,7 @@ enum class TokenKind {
     IDENT,
     INT32,
     FLOAT64,
+    LABEL,
 };
 
 const char * tokenKindStr( TokenKind tk );

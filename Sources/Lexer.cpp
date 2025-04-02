@@ -25,6 +25,8 @@ tokenKindStr( TokenKind tk ) {
         return "TokenKind::INT32";
     case TokenKind::FLOAT64:
         return "TokenKind::FLOAT64";
+    case TokenKind::LABEL:
+        return "TokenKind::LABEL";
     default:
         return "TokenKind::???";
     }
@@ -267,6 +269,18 @@ Lexer::eatToken() {
         token.kind = TokenKind::RPAREN;
         token.loc = SourceCodeLocation { initialByteOffset, 1 };
         this->advanceReadCodepoint();
+    } else if ( this->m_codepoint == '@' ) {
+        this->advanceReadCodepoint();
+        this->readCodepoint();
+        if ( !isValidIdentStart( this->m_codepoint ) ) {
+            this->error = true;
+            emitSourceError( this->m_input,
+                             { initialByteOffset, 1 },
+                             "Expected valid identifier after label marker." );
+        } else {
+            token = this->eatIdent();
+            token.kind = TokenKind::LABEL;
+        }
     } else if ( isValidIdentStart( this->m_codepoint ) ) {
         token = this->eatIdent();
     } else if ( std::isdigit( this->m_codepoint ) ||
@@ -299,6 +313,22 @@ Lexer::lex() {
 }
 
 #ifdef MYL_TEST
+void
+testLexLabel( Tm42_TestContext * ctx ) {
+    TM42_BEGIN_TEST( "Test label lexing" );
+
+    {
+        auto lexer = Lexer( "@label" );
+        const auto token = lexer.eatToken();
+        TM42_TEST_ASSERT( ctx, token.kind == TokenKind::LABEL );
+        TM42_TEST_ASSERT( ctx,
+                          std::get< InternedSymbol >( token.data ) ==
+                          lexer.symbolInterner->intern( "label" ) );
+    }
+
+    TM42_END_TEST();
+}
+
 void
 testLexLex( Tm42_TestContext * ctx ) {
     TM42_BEGIN_TEST( "Test overall lexer" );

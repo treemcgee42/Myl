@@ -50,6 +50,14 @@ public:
     virtual void print( std::ostream & os ) const override;
 };
 
+class Label: public Base {
+public:
+    InternedSymbol value;
+    Label( InternedSymbol value ): value( value ) {}
+
+    virtual void print( std::ostream & os ) const override;
+};
+
 class Cons: public Base {
 public:
     std::unique_ptr< Base > car;
@@ -64,7 +72,7 @@ public:
 
 std::ostream & operator<<( std::ostream & os, const Base & obj );
 
-class Proc: public Cons {
+class Proc: public Base {
 public:
     struct Parameter {
         std::optional< InternedSymbol > label;

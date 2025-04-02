@@ -39,6 +39,11 @@ Symbol::print( std::ostream & os ) const {
 }
 
 void
+Label::print( std::ostream & os ) const {
+    os << "LABEL<" << this->value << ">";
+}
+
+void
 Cons::print( std::ostream & os ) const {
     os << "(";
     if ( this->car ) {
@@ -283,6 +288,11 @@ Parser::parseSExpr() {
         const auto data = std::get< InternedSymbol >( this->m_currentToken.data );
         this->eatToken();
         return std::make_unique< SExpr::Symbol >( data );
+    }
+    case TokenKind::LABEL: {
+        const auto data = std::get< InternedSymbol >( this->m_currentToken.data );
+        this->eatToken();
+        return std::make_unique< SExpr::Label >( data );
     }
     default: {
         std::cout << "parsing error" << "\n";

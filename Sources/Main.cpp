@@ -15,6 +15,7 @@ extern void testSymbolInterner( Tm42_TestContext * ctx );
 
 extern void testLexEatIdent( Tm42_TestContext * ctx );
 extern void testLexEatNumber( Tm42_TestContext * ctx );
+extern void testLexLabel( Tm42_TestContext * ctx );
 extern void testLexLex( Tm42_TestContext * ctx );
 
 extern void testParseCons( Tm42_TestContext * ctx );
@@ -31,6 +32,7 @@ main() {
 
     testLexEatIdent( &ctx );
     testLexEatNumber( &ctx );
+    testLexLabel( &ctx );
     testLexLex( &ctx );
 
     testParseCons( &ctx );
