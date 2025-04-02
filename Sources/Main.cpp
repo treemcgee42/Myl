@@ -18,6 +18,7 @@ extern void testLexEatNumber( Tm42_TestContext * ctx );
 extern void testLexLex( Tm42_TestContext * ctx );
 
 extern void testParseCons( Tm42_TestContext * ctx );
+extern void testParseProc( Tm42_TestContext * ctx );
 
 int
 main() {
@@ -33,6 +34,7 @@ main() {
     testLexLex( &ctx );
 
     testParseCons( &ctx );
+    testParseProc( &ctx );
 }
 
 #else // MYL_TEST

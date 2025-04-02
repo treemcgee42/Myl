@@ -64,7 +64,24 @@ public:
 
 std::ostream & operator<<( std::ostream & os, const Base & obj );
 
+class Proc: public Cons {
+public:
+    struct Parameter {
+        std::optional< InternedSymbol > label;
+        std::unique_ptr< Base > value;
+    };
+
+    Symbol procSymbol;
+    std::vector< Parameter > parameters;
+
+    Proc( Symbol procSymbol, std::vector< Parameter > parameters )
+        : procSymbol( procSymbol ), parameters( std::move( parameters ) ) {}
+
+    virtual void print( std::ostream & os ) const override;
+};
+
 } // namespace SExpr
+
 class Parser {
 public:
     struct Result {
@@ -84,6 +101,10 @@ public:
 
     // cons := '(' SExpr SExpr? ')'
     SExpr::Cons parseCons();
+    // Proc := '(' Symbol Parameter* ')'
+    // Parameter := Label? SExpr
+    // Label := '@' Symbol
+    SExpr::Proc parseProc( SExpr::Cons cons );
     // We have to return a pointer or else we'll lose RTTI... ):
     std::unique_ptr< SExpr::Base > parseSExpr();
 

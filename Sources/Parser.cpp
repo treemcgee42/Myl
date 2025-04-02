@@ -55,6 +55,19 @@ Cons::print( std::ostream & os ) const {
     os << ")";
 }
 
+void
+Proc::print( std::ostream & os ) const {
+    os << "(" << this->procSymbol;
+    for ( const auto & parameter : this->parameters ) {
+        os << " ";
+        if ( parameter.label ) {
+            os << "@" << *parameter.label << " ";
+        }
+        os << *parameter.value;
+    }
+    os << ")";
+}
+
 std::ostream &
 operator<<( std::ostream & os, const Base & obj ) {
     obj.print( os );
@@ -202,6 +215,49 @@ testParseCons( Tm42_TestContext * ctx ) {
 
     TM42_END_TEST();
 }
+#endif // MYL_TEST
+
+SExpr::Proc
+Parser::parseProc( SExpr::Cons cons ) {
+    const auto symbolPtr = dynamic_cast< SExpr::Symbol * >( cons.car.get() );
+    assert( symbolPtr );
+
+    std::vector< SExpr::Proc::Parameter > parameters;
+    if ( dynamic_cast< SExpr::Nil * >( cons.cdr.get() ) ) {
+        return SExpr::Proc( *symbolPtr, std::move( parameters ) );
+    }
+}
+
+#ifdef MYL_TEST
+
+struct ParseProcTestInput {
+    Parser parser;
+    SExpr::Cons cons;
+};
+
+ParseProcTestInput
+parseProcTestHelper( const char * input ) {
+    auto lexer = Lexer( input );
+    const auto lexResult = lexer.lex();
+    auto parser = Parser( input, lexResult.tokens );
+    parser.eatToken();
+    auto cons = parser.parseCons();
+    return { std::move( parser ), std::move( cons ) };
+}
+
+void
+testParseProc( Tm42_TestContext * ctx ) {
+    TM42_BEGIN_TEST( "Parse procedures" );
+
+    {
+        auto input = parseProcTestHelper( "(foo)" );
+        const auto proc = input.parser.parseProc( std::move( input.cons ) );
+        std::cout << proc << "\n";
+    }
+
+    TM42_END_TEST();
+}
+
 #endif // MYL_TEST
 
 std::unique_ptr< SExpr::Base >
