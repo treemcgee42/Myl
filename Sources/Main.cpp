@@ -36,7 +36,7 @@ main() {
     testLexLex( &ctx );
 
     testParseCons( &ctx );
-    // testParseProc( &ctx );
+    testParseProc( &ctx );
 }
 
 #else // MYL_TEST

@@ -110,9 +110,10 @@ public:
 
     // cons := '(' SExpr SExpr? ')'
     SExpr::Cons parseCons();
-    // Proc := '(' Symbol Parameter* ')'
-    // Parameter := Label? SExpr
-    // Label := '@' Symbol
+    // Proc := '(' Symbol Parameters ')'
+    // Parameters := Cons< Parameter, Parameters > | Nil
+    // Parameter := Label SExpr
+    // Label := '@' Symbol | Nil
     SExpr::Proc parseProc( SExpr::Cons cons );
     // We have to return a pointer or else we'll lose RTTI... ):
     std::unique_ptr< SExpr::Base > parseSExpr();

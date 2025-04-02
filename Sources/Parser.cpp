@@ -62,11 +62,11 @@ Cons::print( std::ostream & os ) const {
 
 void
 Proc::print( std::ostream & os ) const {
-    os << "(" << this->procSymbol;
+    os << "(PROC<" << this->procSymbol << ">";
     for ( const auto & parameter : this->parameters ) {
         os << " ";
         if ( parameter.label ) {
-            os << "@" << *parameter.label << " ";
+            os << "@SYM<" << *parameter.label << "> ";
         }
         os << *parameter.value;
     }
@@ -230,36 +230,96 @@ Parser::parseProc( SExpr::Cons cons ) {
     assert( symbolPtr );
 
     std::vector< SExpr::Proc::Parameter > parameters;
-    if ( dynamic_cast< SExpr::Nil * >( cons.cdr.get() ) ) {
-        return SExpr::Proc( *symbolPtr, std::move( parameters ) );
+    // Keep the both unique_ptr and the downcast ptr so the downcast ptr doesn't
+    // point to something that gets cleaned up.
+    auto rest = std::move( cons.cdr );
+    while ( rest ) {
+        SExpr::Proc::Parameter param;
+        auto restConsPtr = dynamic_cast< SExpr::Cons * >( rest.get() );
+        auto current = std::move( restConsPtr->car );
+        auto nextCell = std::move( restConsPtr->cdr );
+
+        if ( auto labelPtr = dynamic_cast< SExpr::Label * >( current.get() );
+             labelPtr ) {
+            auto nextCellConsPtr = dynamic_cast< SExpr::Cons * >( nextCell.get() );
+            assert( nextCellConsPtr );
+
+            param.label = labelPtr->value;
+            param.value = std::move( nextCellConsPtr->car );
+            rest = std::move( nextCellConsPtr->cdr );
+        } else {
+            param.value = std::move( current );
+            rest = std::move( nextCell );
+        }
+
+        parameters.push_back( std::move( param ) );
     }
+
+    return SExpr::Proc( *symbolPtr, std::move( parameters ) );
 }
 
 #ifdef MYL_TEST
 
 struct ParseProcTestInput {
+    std::shared_ptr< SymbolInterner > symbolInterner;
     Parser parser;
     SExpr::Cons cons;
+
+    InternedSymbol
+    intern( const std::string & st ) {
+        return this->symbolInterner->intern( st );
+    }
 };
 
 ParseProcTestInput
 parseProcTestHelper( const char * input ) {
-    auto lexer = Lexer( input );
+    const auto src = std::string( input );
+    auto lexer = Lexer( src );
     const auto lexResult = lexer.lex();
+    assert( !lexResult.error );
+
     auto parser = Parser( input, lexResult.tokens );
     parser.eatToken();
     auto cons = parser.parseCons();
-    return { std::move( parser ), std::move( cons ) };
+    return { lexer.symbolInterner, std::move( parser ), std::move( cons ) };
 }
 
 void
 testParseProc( Tm42_TestContext * ctx ) {
     TM42_BEGIN_TEST( "Parse procedures" );
 
-    {
+    { // no parameters
         auto input = parseProcTestHelper( "(foo)" );
         const auto proc = input.parser.parseProc( std::move( input.cons ) );
-        std::cout << proc << "\n";
+        TM42_TEST_ASSERT( ctx, proc.parameters.size() == 0 );
+    }
+    { // unlabeled parameters
+        auto input = parseProcTestHelper( "(foo 1 2)" );
+        const auto proc = input.parser.parseProc( std::move( input.cons ) );
+        TM42_TEST_ASSERT( ctx, proc.parameters.size() == 2 );
+        TM42_TEST_ASSERT( ctx, !proc.parameters[ 0 ].label );
+        TM42_TEST_ASSERT( ctx, !proc.parameters[ 1 ].label );
+    }
+    { // labeled parameters
+        auto input = parseProcTestHelper( "(foo @p1 1 @p2 2)" );
+        const auto proc = input.parser.parseProc( std::move( input.cons ) );
+        TM42_TEST_ASSERT( ctx, proc.parameters.size() == 2 );
+        TM42_TEST_ASSERT(
+            ctx, *proc.parameters[ 0 ].label == input.intern( "p1" ) );
+        TM42_TEST_ASSERT(
+            ctx, *proc.parameters[ 1 ].label == input.intern( "p2" ) );
+    }
+    { // mix labeled and unlabeled parameters
+        auto input = parseProcTestHelper( "(foo 1 @p2 3 4 @p5 6 7)" );
+        const auto proc = input.parser.parseProc( std::move( input.cons ) );
+        TM42_TEST_ASSERT( ctx, proc.parameters.size() == 5 );
+        TM42_TEST_ASSERT( ctx, !proc.parameters[ 0 ].label );
+        TM42_TEST_ASSERT(
+            ctx, *proc.parameters[ 1 ].label == input.intern( "p2" ) );
+        TM42_TEST_ASSERT( ctx, !proc.parameters[ 2 ].label );
+        TM42_TEST_ASSERT(
+            ctx, *proc.parameters[ 3 ].label == input.intern( "p5" ) );
+        TM42_TEST_ASSERT( ctx, !proc.parameters[ 4 ].label );
     }
 
     TM42_END_TEST();
@@ -271,22 +331,18 @@ std::unique_ptr< SExpr::Base >
 Parser::parseSExpr() {
     switch ( this->m_currentToken.kind ) {
     case TokenKind::LPAREN:
-        std::cout << "parsing cons" << "\n";
         return std::make_unique< SExpr::Cons >( this->parseCons() );
     case TokenKind::INT32: {
-        std::cout << "parsing int32" << "\n";
         const auto data = std::get< I32 >( this->m_currentToken.data );
         this->eatToken();
         return std::make_unique< SExpr::Int32 >( data );
     }
     case TokenKind::FLOAT64: {
-        std::cout << "parsing float64" << "\n";
         const auto data = std::get< F64 >( this->m_currentToken.data );
         this->eatToken();
         return std::make_unique< SExpr::Float64 >( data );
     }
     case TokenKind::IDENT: {
-        std::cout << "parsing ident" << "\n";
         const auto data = std::get< InternedSymbol >( this->m_currentToken.data );
         this->eatToken();
         return std::make_unique< SExpr::Symbol >( data );
@@ -297,7 +353,6 @@ Parser::parseSExpr() {
         return std::make_unique< SExpr::Label >( data );
     }
     default: {
-        std::cout << "parsing error" << "\n";
         emitSourceError( this->source, this->m_currentToken.loc,
                          "Could not parse SExpr starting here." );
         this->error = true;
