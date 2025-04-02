@@ -13,5 +13,7 @@ struct SourceCodeLocation {
     bool isValid( const std::string & src );
 };
 
+std::ostream & operator<<( std::ostream & os, const SourceCodeLocation & loc );
+
 void emitSourceError( const std::string & src, SourceCodeLocation loc,
                       const std::string & msg );

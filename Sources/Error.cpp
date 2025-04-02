@@ -5,16 +5,26 @@
 
 #include "Error.h"
 
+std::ostream &
+operator<<( std::ostream & os, const SourceCodeLocation & loc ) {
+    return os << "{ byteOffset: " << loc.byteOffset
+              << ", byteLength: " << loc.byteLength << " }";
+}
+
 bool
 SourceCodeLocation::isValid( const std::string & src ) {
-    return ( ( this->byteOffset > 0 ) &&
+    return ( ( this->byteOffset >= 0 ) &&
              ( this->byteOffset + this->byteLength < src.size() ) );
 }
 
 void
 emitSourceError( const std::string & src, SourceCodeLocation loc,
                  const std::string & msg ) {
-    assert( loc.isValid( src ) );
+    if ( !loc.isValid( src ) ) {
+        std::cout << "invalid loc: " << loc
+                  << " src size: " << src.size() << "\n";
+        assert( false );
+    }
 
     // Count line number
     int lineNumber = 1;
